@@ -43,10 +43,8 @@ where
             .with_pressure_oversampling(OversamplingSetting::OS4x)
             .with_temperature_oversampling(OversamplingSetting::OS8x)
             .with_temperature_filter(IIRFilterSize::Size3)
-            .with_gas_measurement(core::time::Duration::from_millis(1500), 320, 25)
             // TODO
             //.with_temperature_offset(-0.56) // -0.56 °C (-1 °F)
-            .with_run_gas(true)
             .build();
         drv.set_sensor_settings(&mut delay, settings)?;
         drv.set_sensor_mode(&mut delay, PowerMode::ForcedMode)?;
