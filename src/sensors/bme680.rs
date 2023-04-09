@@ -43,8 +43,6 @@ where
             .with_pressure_oversampling(OversamplingSetting::OS4x)
             .with_temperature_oversampling(OversamplingSetting::OS8x)
             .with_temperature_filter(IIRFilterSize::Size3)
-            // TODO
-            //.with_temperature_offset(-0.56) // -0.56 °C (-1 °F)
             .build();
         drv.set_sensor_settings(&mut delay, settings)?;
         drv.set_sensor_mode(&mut delay, PowerMode::ForcedMode)?;
@@ -54,6 +52,8 @@ where
     pub fn measure(
         &mut self,
     ) -> Result<Measurement, Error<<I2C as Read>::Error, <I2C as Write>::Error>> {
+        self.drv
+            .set_sensor_mode(&mut self.delay, PowerMode::ForcedMode)?;
         let (data, _state) = self.drv.get_sensor_data(&mut self.delay)?;
         Ok(Measurement::from(data))
     }
