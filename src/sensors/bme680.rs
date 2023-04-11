@@ -54,6 +54,12 @@ where
     ) -> Result<Measurement, Error<<I2C as Read>::Error, <I2C as Write>::Error>> {
         self.drv
             .set_sensor_mode(&mut self.delay, PowerMode::ForcedMode)?;
+        // TODO does the bme680 driver do the correct delay??
+        // https://github.com/boschsensortec/BME68x-Sensor-API/blob/6dab330cb5727006d5046f9eebf357f8909c0ef6/examples/forced_mode/forced_mode.c#L67-L78
+        //
+        // https://docs.rs/bme680/0.6.0/src/bme680/lib.rs.html#940-996
+        //
+        //
         let (data, _state) = self.drv.get_sensor_data(&mut self.delay)?;
         Ok(Measurement::from(data))
     }

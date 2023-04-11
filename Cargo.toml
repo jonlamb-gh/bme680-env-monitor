@@ -49,12 +49,7 @@ features = [
 version = "0.5"
 features = ["git2", "chrono"]
 
-[build-dependencies.smoltcp]
-version = "0.9"
-default-features = false
-features = ["medium-ethernet", "proto-ipv4", "socket-raw"]
-
-[build-dependencies.wire-protocols]
+[build-dependencies.env-config]
 git = "https://github.com/jonlamb-gh/air-gradient-pro-rs.git"
 branch = "master"
 
