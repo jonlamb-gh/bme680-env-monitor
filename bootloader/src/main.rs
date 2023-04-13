@@ -6,6 +6,7 @@ mod config;
 mod logger;
 mod net;
 mod panic_handler;
+mod reset_reason;
 mod tasks;
 mod util;
 
@@ -16,6 +17,7 @@ pub mod built_info {
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
     use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
+    use crate::reset_reason::ResetReason;
     use crate::tasks::{
         eth_gpio_interrupt_handler_task, ipstack_clock_timer_task, ipstack_poll_task,
         ipstack_poll_timer_task, watchdog_task,
@@ -28,6 +30,7 @@ mod app {
         wire::EthernetAddress,
     };
     use stm32f4xx_hal::{
+        flash::{flash_sectors, FlashExt},
         gpio::{Edge, Input, Output, PushPull, Speed as GpioSpeed, PA0, PC13},
         pac::{self, TIM3},
         prelude::*,
@@ -71,6 +74,8 @@ mod app {
         udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+        let reset_reason = ResetReason::read_and_clear(&mut ctx.device.RCC);
+
         let mut syscfg = ctx.device.SYSCFG.constrain();
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
@@ -123,9 +128,24 @@ mod app {
             "MAC address: {}",
             EthernetAddress::from_bytes(&config::MAC_ADDRESS)
         );
+        info!("Reset reason: {reset_reason}");
         info!("############################################################");
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
+
+        let flash = ctx.device.FLASH;
+        debug!("Flash addr: 0x{:X}", flash.address());
+        debug!("Flash size: {} ({}K)", flash.len(), flash.len() / 1024);
+        debug!("Flash dual-bank: {}", flash.dual_bank());
+        for sector in flash_sectors(flash.len(), flash.dual_bank()) {
+            debug!(
+                "  sector {} @ 0x{:X}, LEN = {} ({}K)",
+                sector.number,
+                sector.offset,
+                sector.size,
+                sector.size / 1024
+            );
+        }
 
         info!("Setup: ETH");
         watchdog.feed();
@@ -226,6 +246,10 @@ mod app {
         //   maybe early on and skip RTIC setup entirely...
         //   or maybe a task, idk yet
         // else keep running, with timeout (5min?)
+
+        while button.is_low() {
+            cortex_m::asm::nop();
+        }
 
         (
             Shared {
