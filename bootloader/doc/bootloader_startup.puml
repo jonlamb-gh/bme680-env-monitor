@@ -39,9 +39,11 @@ end note
 
 switch (match BC.firmware_boot_slot)
 case (slot == 0)
-:Select application @ slot 0;
+    :Select application @ slot 0
+    (Sector 4 @ 0x0801_0000);
 case (slot == 1)
-:Select application @ slot 1;
+    :Select application @ slot 1
+    (Sector 6 @ 0x0804_0000);
 endswitch
 
 :Boot application;
