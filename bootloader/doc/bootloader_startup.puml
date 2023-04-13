@@ -1,0 +1,49 @@
+@startuml
+
+skinparam defaultTextAlignment center
+
+title Bootloader Startup
+
+start
+
+group Boot Configuration
+    :Read BC from FLASH
+    (Boot Configuration);
+
+    if (BC.magic invalid OR BC.crc invalid)
+        :Initialize to defaults 
+        BC.magic = MAGIC
+        BC.firmware_boot_slot = 0
+        ...
+        BC.crc = crc32(BC);
+        note left
+            Initial programming 
+            **must** write application
+            to boot slot 0.
+        end note
+        :Write BC to FLASH;
+    else (BC valid)
+    endif
+end group
+
+:Read UCS words from RAM
+(Update Configuration and Status);
+note right
+    TODO - update this section with the protocol
+    once it exists.
+    Some sort of ACK/handshake that
+    the new application is working and it's
+    ok to update the BC.
+    Failsafe to boot back into previous slot.
+end note
+
+switch (match BC.firmware_boot_slot)
+case (slot == 0)
+:Select application @ slot 0;
+case (slot == 1)
+:Select application @ slot 1;
+endswitch
+
+:Boot application;
+
+@enduml
