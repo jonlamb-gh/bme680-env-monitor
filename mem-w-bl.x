@@ -7,7 +7,7 @@ MEMORY
 
     /* Bootloader is given the first 4 sectors (16K * 4 = 64K) */
     /* Firmware starts at 0x08010000 (offset 0x10000, sector 4, 512K - 64K = 448K) */
-    FLASH : ORIGIN = 0x08040000, LENGTH = 194K
+    FLASH : ORIGIN = 0x08010000, LENGTH = 194K
 
     /* First 8 bytes are reserved for the bootloader sticky flag data */
     /* LENGTH = (128K - 8) = 131064 */
