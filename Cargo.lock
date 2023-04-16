@@ -3,6 +3,19 @@
 version = 3
 
 [[package]]
+name = "agp-bootloader"
+version = "0.1.0"
+dependencies = [
+ "built",
+ "cortex-m",
+ "cortex-m-rt",
+ "cortex-m-rtic",
+ "log",
+ "static_assertions",
+ "stm32f4xx-hal",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -86,6 +99,7 @@ dependencies = [
 name = "bme680-env-monitor"
 version = "0.1.0"
 dependencies = [
+ "agp-bootloader",
  "bme680",
  "built",
  "cortex-m",

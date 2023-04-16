@@ -5,7 +5,6 @@ pub(crate) fn watchdog_task(ctx: watchdog_task::Context) {
     let watchdog = ctx.local.watchdog;
     let led = ctx.local.led;
 
-    log::info!("FEEED (wdg disabled)");
     watchdog.feed();
     led.toggle();
 

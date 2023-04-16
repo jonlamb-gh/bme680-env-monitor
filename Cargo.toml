@@ -18,6 +18,10 @@ log = "0.4"
 static_assertions = "1.1"
 bme680 = "0.6"
 
+# TODO - testing
+[dependencies.agp-bootloader]
+path = "../air-gradient-pro-rs/bootloader"
+
 [dependencies.wire-protocols]
 git = "https://github.com/jonlamb-gh/air-gradient-pro-rs.git"
 branch = "master"

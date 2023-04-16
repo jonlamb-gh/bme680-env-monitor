@@ -25,13 +25,15 @@ mod app {
         ipstack_poll_task, ipstack_poll_timer_task, watchdog_task,
     };
     use crate::{config, util};
-    use log::{debug, info};
+    use bootloader_lib::{BootConfig, ResetReason, UpdateConfigAndStatus};
+    use log::{debug, error, info};
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
         wire::{EthernetAddress, Ipv4Address},
     };
     use stm32f4xx_hal::{
+        crc32::Crc32,
         gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
         pac::{self, TIM10, TIM3},
         prelude::*,
@@ -74,6 +76,8 @@ mod app {
         udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+        let reset_reason: ResetReason = ResetReason::read_and_clear(&mut ctx.device.RCC);
+
         let mut syscfg = ctx.device.SYSCFG.constrain();
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
@@ -129,7 +133,18 @@ mod app {
             "Broadcast protocol address: {}",
             Ipv4Address(config::BROADCAST_ADDRESS)
         );
+        info!("Reset reason: {reset_reason}");
         info!("############################################################");
+
+        let update_pending: bool = UpdateConfigAndStatus::update_pending();
+        if update_pending && reset_reason != ResetReason::SoftwareReset {
+            error!("Aborting application update due to wrong reset reason");
+            UpdateConfigAndStatus::clear();
+            let _ = watchdog;
+            loop {
+                cortex_m::asm::nop();
+            }
+        }
 
         let mut common_delay = ctx.device.TIM4.delay_ms(&clocks);
 
@@ -144,6 +159,10 @@ mod app {
             }
         }
         watchdog.feed();
+
+        info!("Setup: boot config");
+        let mut crc = Crc32::new(ctx.device.CRC);
+        let _boot_cfg = BootConfig::read(&ctx.device.FLASH, &mut crc).unwrap();
 
         info!("Setup: BME680");
         let bme680_delay = ctx.device.TIM10.delay_ms(&clocks);
@@ -242,6 +261,13 @@ mod app {
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!(">>> Initialized <<<");
         watchdog.feed();
+
+        if update_pending && reset_reason == ResetReason::SoftwareReset {
+            info!("New application update checks out, marking for BC flash and reseting");
+            UpdateConfigAndStatus::set_update_pending();
+            UpdateConfigAndStatus::set_update_valid();
+            unsafe { bootloader_lib::sw_reset() };
+        }
 
         watchdog_task::spawn().unwrap();
         bme680_task::spawn().unwrap();
