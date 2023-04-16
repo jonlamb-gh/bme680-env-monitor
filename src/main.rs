@@ -60,7 +60,7 @@ mod app {
         net_clock_timer: SysCounterUs,
         ipstack_poll_timer: CounterHz<TIM3>,
         led: LedPin,
-        //watchdog: IndependentWatchdog,
+        watchdog: IndependentWatchdog,
         bme680: Bme680<DelayMs<TIM10>>,
     }
 
@@ -78,9 +78,9 @@ mod app {
         let rcc = ctx.device.RCC.constrain();
         let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(64.MHz()).freeze();
 
-        //let mut watchdog = IndependentWatchdog::new(ctx.device.IWDG);
-        //watchdog.start(config::WATCHDOG_RESET_PERIOD_MS.millis());
-        //watchdog.feed();
+        let mut watchdog = IndependentWatchdog::new(ctx.device.IWDG);
+        watchdog.start(config::WATCHDOG_RESET_PERIOD_MS.millis());
+        watchdog.feed();
 
         let gpioa = ctx.device.GPIOA.split();
         let gpiob = ctx.device.GPIOB.split();
@@ -99,7 +99,7 @@ mod app {
             .unwrap();
         unsafe { crate::logger::init_logging(log_tx) };
 
-        //debug!("Watchdog: inerval {}", watchdog.interval());
+        debug!("Watchdog: inerval {}", watchdog.interval());
 
         info!("############################################################");
         info!(
@@ -139,11 +139,11 @@ mod app {
         );
         for _ in 0..config::STARTUP_DELAY_SECONDS {
             for _ in 0..10 {
-                //watchdog.feed();
+                watchdog.feed();
                 common_delay.delay_ms(100_u8);
             }
         }
-        //watchdog.feed();
+        watchdog.feed();
 
         info!("Setup: BME680");
         let bme680_delay = ctx.device.TIM10.delay_ms(&clocks);
@@ -241,7 +241,7 @@ mod app {
 
         let mono = ctx.device.TIM2.monotonic_us(&clocks);
         info!(">>> Initialized <<<");
-        //watchdog.feed();
+        watchdog.feed();
 
         watchdog_task::spawn().unwrap();
         bme680_task::spawn().unwrap();
@@ -263,7 +263,7 @@ mod app {
                 net_clock_timer,
                 ipstack_poll_timer,
                 led,
-                //watchdog,
+                watchdog,
                 bme680,
             },
             init::Monotonics(mono),
@@ -271,8 +271,7 @@ mod app {
     }
 
     extern "Rust" {
-        //#[task(local = [watchdog, led])]
-        #[task(local = [led])]
+        #[task(local = [watchdog, led])]
         fn watchdog_task(ctx: watchdog_task::Context);
     }
 
