@@ -34,7 +34,7 @@ mod app {
     };
     use stm32f4xx_hal::{
         crc32::Crc32,
-        gpio::{Edge, Output, PushPull, Speed as GpioSpeed, PC13},
+        gpio::{Edge, Input, Output, PushPull, Speed as GpioSpeed, PA0, PC13},
         pac::{self, TIM10, TIM3},
         prelude::*,
         spi::Spi,
@@ -44,6 +44,7 @@ mod app {
     };
 
     type LedPin = PC13<Output<PushPull>>;
+    type OnBoardButton = PA0<Input>;
 
     #[shared]
     struct Shared {
@@ -64,6 +65,7 @@ mod app {
         led: LedPin,
         watchdog: IndependentWatchdog,
         bme680: Bme680<DelayMs<TIM10>>,
+        button: OnBoardButton,
     }
 
     /// TIM2 is a 32-bit timer, defaults to having the highest interrupt priority
@@ -92,6 +94,8 @@ mod app {
 
         // Turn it off, active-low
         let led: LedPin = gpioc.pc13.into_push_pull_output_in_state(true.into());
+
+        let on_board_button: OnBoardButton = gpioa.pa0.into_pull_up_input();
 
         // Setup logging impl via USART6, Rx on PA12, Tx on PA11
         // This is also the virtual com port on the nucleo boards: stty -F /dev/ttyACM0 115200
@@ -278,6 +282,8 @@ mod app {
         )
         .unwrap();
 
+        button_polling_task::spawn().unwrap();
+
         (
             Shared {
                 eth,
@@ -291,6 +297,7 @@ mod app {
                 led,
                 watchdog,
                 bme680,
+                button: on_board_button,
             },
             init::Monotonics(mono),
         )
@@ -329,5 +336,16 @@ mod app {
     extern "Rust" {
         #[task(binds = EXTI9_5, shared = [eth])]
         fn eth_gpio_interrupt_handler_task(ctx: eth_gpio_interrupt_handler_task::Context);
+    }
+
+    #[task(local = [button])]
+    fn button_polling_task(ctx: button_polling_task::Context) {
+        let button = ctx.local.button;
+        if button.is_low() {
+            info!("Button pressed - doing update protocol");
+            UpdateConfigAndStatus::set_update_pending();
+            unsafe { bootloader_lib::sw_reset() };
+        }
+        button_polling_task::spawn_after(500.millis()).unwrap();
     }
 }
