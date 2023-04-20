@@ -1,6 +1,6 @@
 [package]
 name = "bme680-env-monitor"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Jon Lamb"]
 build = "build.rs"
@@ -23,8 +23,15 @@ bme680 = "0.6"
 path = "../air-gradient-pro-rs/bootloader"
 
 [dependencies.wire-protocols]
-git = "https://github.com/jonlamb-gh/air-gradient-pro-rs.git"
-branch = "master"
+#git = "https://github.com/jonlamb-gh/air-gradient-pro-rs.git"
+#branch = "master"
+path = "../air-gradient-pro-rs/libraries/wire-protocols"
+
+[dependencies.bootloader-support]
+path = "../air-gradient-pro-rs/libraries/bootloader-support"
+
+[dependencies.update-manager]
+path = "../air-gradient-pro-rs/libraries/update-manager"
 
 # TODO - upstream these changes
 [dependencies.enc28j60]

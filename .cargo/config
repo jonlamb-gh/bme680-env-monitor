@@ -1,7 +1,8 @@
 [target.thumbv7em-none-eabihf]
 runner = 'probe-run --chip STM32F411CEUx'
 rustflags = [
-    "-C", "linker=flip-link",
+    "-C", "linker=./test-agp-linker",
+    #"-C", "linker=flip-link",
     "-C", "link-arg=-Tlink.x",
 ]
 

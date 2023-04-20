@@ -6,6 +6,7 @@ version = 3
 name = "agp-bootloader"
 version = "0.1.0"
 dependencies = [
+ "bootloader-support",
  "built",
  "cortex-m",
  "cortex-m-rt",
@@ -97,10 +98,11 @@ dependencies = [
 
 [[package]]
 name = "bme680-env-monitor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "agp-bootloader",
  "bme680",
+ "bootloader-support",
  "built",
  "cortex-m",
  "cortex-m-rt",
@@ -112,8 +114,13 @@ dependencies = [
  "smoltcp",
  "static_assertions",
  "stm32f4xx-hal",
- "wire-protocols",
+ "update-manager",
+ "wire-protocols 0.1.0",
 ]
+
+[[package]]
+name = "bootloader-support"
+version = "0.1.0"
 
 [[package]]
 name = "built"
@@ -292,7 +299,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scratch",
- "syn 2.0.14",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -309,7 +316,7 @@ checksum = "2345488264226bf682893e25de0769f3360aac9957980ec49361b083ddaa5bc5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.14",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -361,10 +368,10 @@ dependencies = [
 [[package]]
 name = "env-config"
 version = "0.1.0"
-source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#82f086953c1b91fca9971f4187b837b5bd5e69c3"
+source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#92d26c73a296001a4583ca29fbcdff399b99f18d"
 dependencies = [
  "smoltcp",
- "wire-protocols",
+ "wire-protocols 0.1.0 (git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master)",
 ]
 
 [[package]]
@@ -800,7 +807,7 @@ checksum = "291a097c63d8497e00160b166a967a4a79c64f3facdd01cbd7502231688d77df"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.14",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -887,9 +894,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.14"
+version = "2.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcf316d5356ed6847742d036f8a39c3b8435cac10bd528a4bd461928a6ab34d5"
+checksum = "a34fcf3e8b60f57e6a14301a2e916d323af98b0ea63c599441eec8558660c822"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -987,6 +994,16 @@ name = "unicode-width"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
+
+[[package]]
+name = "update-manager"
+version = "0.1.0"
+dependencies = [
+ "bootloader-support",
+ "log",
+ "smoltcp",
+ "wire-protocols 0.1.0",
+]
 
 [[package]]
 name = "url"
@@ -1186,7 +1203,15 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 [[package]]
 name = "wire-protocols"
 version = "0.1.0"
-source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#82f086953c1b91fca9971f4187b837b5bd5e69c3"
+dependencies = [
+ "bitfield 0.14.0",
+ "byteorder",
+]
+
+[[package]]
+name = "wire-protocols"
+version = "0.1.0"
+source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#92d26c73a296001a4583ca29fbcdff399b99f18d"
 dependencies = [
  "bitfield 0.14.0",
  "byteorder",

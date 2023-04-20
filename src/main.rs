@@ -16,19 +16,23 @@ pub mod built_info {
 
 #[rtic::app(device = stm32f4xx_hal::pac, dispatchers = [EXTI0, EXTI1, EXTI2])]
 mod app {
-    use crate::net::{Eth, EthernetStorage, NetworkStorage, UdpSocketStorage};
+    use crate::net::{Eth, EthernetStorage, NetworkStorage, TcpSocketStorage, UdpSocketStorage};
     use crate::sensors::Bme680;
     use crate::tasks::{
         bme680_task,
         data_manager::{SpawnArg as DataManagerSpawnArg, TaskState as DataManagerTaskState},
         data_manager_task, eth_gpio_interrupt_handler_task, ipstack_clock_timer_task,
-        ipstack_poll_task, ipstack_poll_timer_task, watchdog_task,
+        ipstack_poll_task, ipstack_poll_timer_task,
+        update_manager::TaskState as UpdateManagerTaskState,
+        update_manager_task, watchdog_task,
     };
     use crate::{config, util};
-    use bootloader_lib::{BootConfig, ResetReason, UpdateConfigAndStatus};
+    use bootloader_lib::{BootConfig, ResetReasonExt, UpdateConfigAndStatus};
+    use bootloader_support::ResetReason;
     use log::{debug, error, info};
     use smoltcp::{
         iface::{Config, Interface, SocketHandle, SocketSet},
+        socket::tcp::{Socket as TcpSocket, SocketBuffer as TcpSocketBuffer},
         socket::udp::{PacketBuffer as UdpPacketBuffer, Socket as UdpSocket},
         wire::{EthernetAddress, Ipv4Address},
     };
@@ -42,6 +46,7 @@ mod app {
         timer::{DelayMs, Event, MonoTimerUs, SysCounterUs, SysEvent},
         watchdog::IndependentWatchdog,
     };
+    use update_manager::DeviceInfo;
 
     type LedPin = PC13<Output<PushPull>>;
     type OnBoardButton = PA0<Input>;
@@ -56,6 +61,8 @@ mod app {
         sockets: SocketSet<'static>,
         #[lock_free]
         udp_socket: SocketHandle,
+        #[lock_free]
+        device_socket: SocketHandle,
     }
 
     #[local]
@@ -65,6 +72,7 @@ mod app {
         led: LedPin,
         watchdog: IndependentWatchdog,
         bme680: Bme680<DelayMs<TIM10>>,
+        device_info: DeviceInfo,
         button: OnBoardButton,
     }
 
@@ -74,8 +82,9 @@ mod app {
 
     #[init(local = [
         eth_storage: EthernetStorage<{Eth::MTU}> = EthernetStorage::new(),
-        net_storage: NetworkStorage<1> = NetworkStorage::new(),
+        net_storage: NetworkStorage<2> = NetworkStorage::new(),
         udp_socket_storage: UdpSocketStorage<{config::SOCKET_BUFFER_LEN}> = UdpSocketStorage::new(),
+        tcp_socket_storage: TcpSocketStorage<{config::DEVICE_PROTO_SOCKET_BUFFER_LEN}> = TcpSocketStorage::new(),
     ])]
     fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
         let reset_reason: ResetReason = ResetReason::read_and_clear(&mut ctx.device.RCC);
@@ -166,7 +175,7 @@ mod app {
 
         info!("Setup: boot config");
         let mut crc = Crc32::new(ctx.device.CRC);
-        let _boot_cfg = BootConfig::read(&ctx.device.FLASH, &mut crc).unwrap();
+        let boot_cfg = BootConfig::read(&ctx.device.FLASH, &mut crc).unwrap();
 
         info!("Setup: BME680");
         let bme680_delay = ctx.device.TIM10.delay_ms(&clocks);
@@ -241,6 +250,7 @@ mod app {
             addr.push(config::IP_CIDR.into()).unwrap();
         });
         let mut sockets = SocketSet::new(&mut ctx.local.net_storage.sockets[..]);
+
         let udp_rx_buf = UdpPacketBuffer::new(
             &mut ctx.local.udp_socket_storage.rx_metadata[..],
             &mut ctx.local.udp_socket_storage.rx_buffer[..],
@@ -251,6 +261,11 @@ mod app {
         );
         let udp_socket = UdpSocket::new(udp_rx_buf, udp_tx_buf);
         let udp_handle = sockets.add(udp_socket);
+
+        let tcp_rx_buf = TcpSocketBuffer::new(&mut ctx.local.tcp_socket_storage.rx_buffer[..]);
+        let tcp_tx_buf = TcpSocketBuffer::new(&mut ctx.local.tcp_socket_storage.tx_buffer[..]);
+        let tcp_socket = TcpSocket::new(tcp_rx_buf, tcp_tx_buf);
+        let device_socket = sockets.add(tcp_socket);
 
         info!("Setup: net clock timer");
         let mut net_clock_timer = ctx.core.SYST.counter_us(&clocks);
@@ -266,6 +281,7 @@ mod app {
         info!(">>> Initialized <<<");
         watchdog.feed();
 
+        // TODO - move to a task that lets the app run for some period of time?
         if update_pending && reset_reason == ResetReason::SoftwareReset {
             info!("New application update checks out, marking for BC flash and reseting");
             UpdateConfigAndStatus::set_update_pending();
@@ -273,14 +289,18 @@ mod app {
             unsafe { bootloader_lib::sw_reset() };
         }
 
+        let device_info = util::device_info(boot_cfg.firmware_boot_slot(), reset_reason);
+
         watchdog_task::spawn().unwrap();
-        bme680_task::spawn().unwrap();
+        //bme680_task::spawn().unwrap();
 
         data_manager_task::spawn_after(
             config::BCAST_INTERVAL_SEC.secs(),
             DataManagerSpawnArg::SendBroadcastMessage,
         )
         .unwrap();
+
+        update_manager_task::spawn_after(config::UPDATE_MANAGER_POLL_INTERVAL_MS.millis()).unwrap();
 
         button_polling_task::spawn().unwrap();
 
@@ -290,6 +310,7 @@ mod app {
                 net: eth_iface,
                 sockets,
                 udp_socket: udp_handle,
+                device_socket,
             },
             Local {
                 net_clock_timer,
@@ -297,6 +318,7 @@ mod app {
                 led,
                 watchdog,
                 bme680,
+                device_info,
                 button: on_board_button,
             },
             init::Monotonics(mono),
@@ -316,6 +338,11 @@ mod app {
     extern "Rust" {
         #[task(local = [state: DataManagerTaskState = DataManagerTaskState::new()], shared = [sockets, udp_socket], capacity = 8)]
         fn data_manager_task(ctx: data_manager_task::Context, arg: DataManagerSpawnArg);
+    }
+
+    extern "Rust" {
+        #[task(local = [state: UpdateManagerTaskState = UpdateManagerTaskState::new(), device_info], shared = [sockets, device_socket])]
+        fn update_manager_task(ctx: update_manager_task::Context);
     }
 
     extern "Rust" {

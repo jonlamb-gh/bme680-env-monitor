@@ -96,7 +96,7 @@ pub(crate) fn data_manager_task(ctx: data_manager_task::Context, arg: SpawnArg) 
                 Ok(buf) => {
                     let mut wire = WireMessage::new_unchecked(buf);
                     state.msg.emit(&mut wire);
-                    debug!("DM: Sent message sn {}", state.msg.sequence_number);
+                    //debug!("DM: Sent message sn {}", state.msg.sequence_number);
                     state.msg.sequence_number = state.msg.sequence_number.wrapping_add(1);
                 }
             }
