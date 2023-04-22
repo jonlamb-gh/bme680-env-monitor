@@ -39,7 +39,7 @@ mod app {
     use stm32f4xx_hal::{
         crc32::Crc32,
         gpio::{Edge, Input, Output, PushPull, Speed as GpioSpeed, PA0, PC13},
-        pac::{self, TIM10, TIM3},
+        pac::{self, FLASH, TIM10, TIM3},
         prelude::*,
         spi::Spi,
         timer::counter::CounterHz,
@@ -73,6 +73,7 @@ mod app {
         watchdog: IndependentWatchdog,
         bme680: Bme680<DelayMs<TIM10>>,
         device_info: DeviceInfo,
+        flash: FLASH,
         button: OnBoardButton,
     }
 
@@ -174,8 +175,9 @@ mod app {
         watchdog.feed();
 
         info!("Setup: boot config");
+        let flash = ctx.device.FLASH;
         let mut crc = Crc32::new(ctx.device.CRC);
-        let boot_cfg = BootConfig::read(&ctx.device.FLASH, &mut crc).unwrap();
+        let boot_cfg = BootConfig::read(&flash, &mut crc).unwrap();
 
         info!("Setup: BME680");
         let bme680_delay = ctx.device.TIM10.delay_ms(&clocks);
@@ -319,6 +321,7 @@ mod app {
                 watchdog,
                 bme680,
                 device_info,
+                flash,
                 button: on_board_button,
             },
             init::Monotonics(mono),
@@ -341,7 +344,10 @@ mod app {
     }
 
     extern "Rust" {
-        #[task(local = [state: UpdateManagerTaskState = UpdateManagerTaskState::new(), device_info], shared = [sockets, device_socket])]
+        #[task(
+            local = [state: UpdateManagerTaskState = UpdateManagerTaskState::new(), device_info, flash],
+            shared = [sockets, device_socket])
+        ]
         fn update_manager_task(ctx: update_manager_task::Context);
     }
 
