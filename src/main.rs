@@ -119,6 +119,8 @@ mod app {
 
         debug!("Watchdog: inerval {}", watchdog.interval());
 
+        let update_pending = UpdateConfigAndStatus::update_pending();
+
         info!("############################################################");
         info!(
             "{} {} ({})",
@@ -147,10 +149,11 @@ mod app {
             "Broadcast protocol address: {}",
             Ipv4Address(config::BROADCAST_ADDRESS)
         );
+        // TODO device port...
         info!("Reset reason: {reset_reason}");
+        info!("Update pending: {update_pending}");
         info!("############################################################");
 
-        let update_pending: bool = UpdateConfigAndStatus::update_pending();
         if update_pending && reset_reason != ResetReason::SoftwareReset {
             error!("Aborting application update due to wrong reset reason");
             UpdateConfigAndStatus::clear();
