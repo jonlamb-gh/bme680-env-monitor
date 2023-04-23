@@ -5,7 +5,8 @@ MEMORY
     /* FLASH : ORIGIN = 0x08000000, LENGTH = 512K */
     /* RAM : ORIGIN = 0x20000000, LENGTH = 128K */
 
-    FLASH : ORIGIN = 0x08040000, LENGTH = 194K
+    FLASH : ORIGIN = 0x08010000, LENGTH = 194K
+    /* FLASH : ORIGIN = 0x08040000, LENGTH = 194K */
 
     /* First 16 bytes are reserved for the UCS words */
     /* LENGTH = (128K - 16) = 131056 */
