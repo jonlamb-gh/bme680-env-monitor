@@ -284,6 +284,7 @@ mod app {
         watchdog.feed();
 
         // TODO - move to a task that lets the app run for some period of time?
+        // this needs fixed
         if update_pending && reset_reason == ResetReason::SoftwareReset {
             info!("New application update checks out, marking for BC flash and reseting");
             UpdateConfigAndStatus::set_update_pending();
