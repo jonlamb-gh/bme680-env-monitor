@@ -75,8 +75,9 @@ impl<'a> Device for UmDevice<'a> {
             Err(StatusCode::DataLengthIncorrect)
         } else {
             req.check_length()?;
-            let a = other_slot.offset() as usize;
+            let a = (req.address - FLASH_BASE_ADDRESS) as usize;
             let b = a + (req.length as usize);
+            debug!("Reading FLASH at offset 0x{a:X} len=0x{:X}", req.length);
             let mem = self.flash.read();
             Ok(&mem[a..b])
         }
@@ -86,10 +87,7 @@ impl<'a> Device for UmDevice<'a> {
         let other_slot = self.info.active_boot_slot.other();
         if !other_slot.contains(req.address) {
             Err(StatusCode::InvalidAddress)
-        } else if !other_slot.contains(req.address + req.length - 1)
-            || req.length as usize != data.len()
-        {
-            warn!("Socket buf len={} but req len={}", data.len(), req.length);
+        } else if !other_slot.contains(req.address + req.length - 1) {
             Err(StatusCode::DataLengthIncorrect)
         } else {
             req.check_length()?;

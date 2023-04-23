@@ -29,14 +29,14 @@ pub struct Eth<'buf> {
 }
 
 impl<'buf> Eth<'buf> {
-    // TODO - should be 1514 ? query the driver
-    pub const MTU: usize = 1500;
+    pub const MTU: usize = 1514;
 
     pub fn new(drv: Drv, rx_buffer: &'buf mut [u8], tx_buffer: &'buf mut [u8]) -> Self {
         debug!(
-            "ENC28J60: buffer length, rx {}, tx {}",
+            "ENC28J60: buffer length, rx {}, tx {}, drv.MTU {}",
             rx_buffer.len(),
-            tx_buffer.len()
+            tx_buffer.len(),
+            drv.mtu(),
         );
         Eth {
             drv,
@@ -95,7 +95,12 @@ impl<'buf> Device for Eth<'buf> {
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        caps.max_transmission_unit = Self::MTU;
+        // TODO - fixup the MTU logic
+        // 1514, the maximum frame length allowed by the interface
+        // 1024, buffer sizes
+        let min_buf = core::cmp::min(self.rx_buffer.len(), self.tx_buffer.len());
+        let min_iface = core::cmp::min(self.drv.mtu() as usize, Self::MTU);
+        caps.max_transmission_unit = core::cmp::min(min_buf, min_iface);
         caps.max_burst_size = Some(1);
         caps.medium = Medium::Ethernet;
         caps
