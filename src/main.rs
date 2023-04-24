@@ -119,6 +119,7 @@ mod app {
 
         debug!("Watchdog: inerval {}", watchdog.interval());
 
+        // Read and clear UCS flags
         let update_pending = UpdateConfigAndStatus::update_pending();
 
         info!("############################################################");
@@ -149,7 +150,7 @@ mod app {
             "Broadcast protocol address: {}",
             Ipv4Address(config::BROADCAST_ADDRESS)
         );
-        // TODO device port...
+        info!("Device protocol port: {}", config::DEVICE_PORT);
         info!("Reset reason: {reset_reason}");
         info!("Update pending: {update_pending}");
         info!("############################################################");
@@ -157,6 +158,7 @@ mod app {
         if update_pending && reset_reason != ResetReason::SoftwareReset {
             error!("Aborting application update due to wrong reset reason");
             UpdateConfigAndStatus::clear();
+            // Let the watchdog reset to indicate a failure to the bootloader
             let _ = watchdog;
             loop {
                 cortex_m::asm::nop();
@@ -286,8 +288,10 @@ mod app {
         info!(">>> Initialized <<<");
         watchdog.feed();
 
-        // TODO - move to a task that lets the app run for some period of time?
-        // this needs fixed
+        // If we've made it this far, assume it's ok to mark this firmware image slot as
+        // valid
+        // NOTE: could move this to a task and perform the op later to give things a chance
+        // to gain more coverage
         if update_pending && reset_reason == ResetReason::SoftwareReset {
             info!("New application update checks out, marking for BC flash and reseting");
             UpdateConfigAndStatus::set_update_pending();

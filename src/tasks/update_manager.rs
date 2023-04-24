@@ -6,7 +6,7 @@ use smoltcp::socket::tcp::Socket as TcpSocket;
 use stm32f4xx_hal::{flash::FlashExt, pac::FLASH, prelude::*};
 use update_manager::{Device, DeviceInfo, StatusCodeResult, UpdateManager};
 use wire_protocols::device::{
-    MemoryEraseRequest, MemoryReadRequest, MemoryWriteRequest, StatusCode, DEFAULT_PORT,
+    MemoryEraseRequest, MemoryReadRequest, MemoryWriteRequest, StatusCode,
 };
 
 pub struct TaskState {
@@ -16,8 +16,7 @@ pub struct TaskState {
 impl TaskState {
     pub const fn new() -> Self {
         Self {
-            // TODO config for port
-            um: UpdateManager::new(DEFAULT_PORT),
+            um: UpdateManager::new(config::DEVICE_PORT),
         }
     }
 }
@@ -33,7 +32,6 @@ pub(crate) fn update_manager_task(ctx: update_manager_task::Context) {
     // socket keep_alive and timeout configs
     let socket = sockets.get_mut::<TcpSocket>(*socket_handle);
 
-    // TODO
     let mut dev = UmDevice {
         info: device_info,
         flash,

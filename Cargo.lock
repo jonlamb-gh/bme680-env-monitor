@@ -115,7 +115,7 @@ dependencies = [
  "static_assertions",
  "stm32f4xx-hal",
  "update-manager",
- "wire-protocols 0.1.0",
+ "wire-protocols",
 ]
 
 [[package]]
@@ -368,10 +368,9 @@ dependencies = [
 [[package]]
 name = "env-config"
 version = "0.1.0"
-source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#92d26c73a296001a4583ca29fbcdff399b99f18d"
 dependencies = [
  "smoltcp",
- "wire-protocols 0.1.0 (git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master)",
+ "wire-protocols",
 ]
 
 [[package]]
@@ -1002,7 +1001,7 @@ dependencies = [
  "bootloader-support",
  "log",
  "smoltcp",
- "wire-protocols 0.1.0",
+ "wire-protocols",
 ]
 
 [[package]]
@@ -1203,15 +1202,6 @@ checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
 [[package]]
 name = "wire-protocols"
 version = "0.1.0"
-dependencies = [
- "bitfield 0.14.0",
- "byteorder",
-]
-
-[[package]]
-name = "wire-protocols"
-version = "0.1.0"
-source = "git+https://github.com/jonlamb-gh/air-gradient-pro-rs.git?branch=master#92d26c73a296001a4583ca29fbcdff399b99f18d"
 dependencies = [
  "bitfield 0.14.0",
  "byteorder",
